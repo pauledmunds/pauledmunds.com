@@ -31,32 +31,29 @@
         pointLight.position.set(10, 10, 10);
         scene.add(pointLight);
 
-        const geometry1 = new THREE.BoxGeometry();
-        const material1 = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-        const cube = new THREE.Mesh(geometry1, material1);
-        cube.position.x = -2;
-        scene.add(cube);
+        const group = new THREE.Group();
+        const geometry = new THREE.SphereGeometry(0.5, 48, 48);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0088ff });
 
-        const geometry2 = new THREE.SphereGeometry(0.7, 32, 32);
-        const material2 = new THREE.MeshStandardMaterial({ color: 0xff0040 });
-        const sphere = new THREE.Mesh(geometry2, material2);
-        scene.add(sphere);
+        const gridSize = 10; // number of spheres per side
+        const spacing = 1.2;  // distance between spheres
 
-        const geometry3 = new THREE.TorusKnotGeometry(0.5, 0.2, 100, 16);
-        const material3 = new THREE.MeshStandardMaterial({ color: 0x0088ff });
-        const torus = new THREE.Mesh(geometry3, material3);
-        torus.position.x = 2;
-        scene.add(torus);
+        for (let i = -gridSize / 2; i < gridSize / 2; i++) {
+            for (let j = -gridSize / 2; j < gridSize / 2; j++) {
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(i * spacing, j * spacing, 0);
+                group.add(mesh);
+            }
+        }
 
-        camera.position.z = 5;
+        scene.add(group);
+
+        camera.position.z = gridSize * spacing;
 
         function animate() {
             requestAnimationFrame(animate);
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
-            sphere.rotation.y += 0.015;
-            torus.rotation.x += 0.02;
-            torus.rotation.y += 0.02;
+            group.rotation.x += 0.005;
+            group.rotation.y += 0.01;
             renderer.render(scene, camera);
         }
         animate();
