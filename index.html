@@ -32,19 +32,50 @@
         scene.add(pointLight);
 
         const group = new THREE.Group();
-        const geometry = new THREE.SphereGeometry(0.5, 48, 48);
-        const material = new THREE.MeshStandardMaterial({ color: 0x0088ff });
 
-        const gridSize = 10; // number of spheres per side
-        const spacing = 1.2;  // distance between spheres
+        // A collection of geometries to randomly pick from
+        const geometries = [
+            () => new THREE.SphereGeometry(0.5, 32, 32),
+            () => new THREE.BoxGeometry(1, 1, 1),
+            () => new THREE.TetrahedronGeometry(0.6),
+            () => new THREE.OctahedronGeometry(0.6),
+            () => new THREE.DodecahedronGeometry(0.6)
+        ];
+
+        const gridSize = 40; // number of shapes per side
+        const spacing = 1.2;  // distance between shapes
 
         for (let i = -gridSize / 2; i < gridSize / 2; i++) {
             for (let j = -gridSize / 2; j < gridSize / 2; j++) {
+                const geometry = geometries[Math.floor(Math.random() * geometries.length)]();
+                const material = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(Math.random(), 0.7, 0.5) });
                 const mesh = new THREE.Mesh(geometry, material);
-                mesh.position.set(i * spacing, j * spacing, 0);
+                mesh.position.set(i * spacing, j * spacing, (Math.random() - 0.5) * spacing);
                 group.add(mesh);
             }
         }
+
+        // Load a font and create a few 3D emoji at random positions
+        const loader = new THREE.FontLoader();
+        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', font => {
+            const emojis = ['\ud83d\ude03', '\ud83d\ude80', '\ud83c\udf1f', '\ud83c\udf89', '\ud83c\udf55'];
+            emojis.forEach(emoji => {
+                const textGeo = new THREE.TextGeometry(emoji, {
+                    font: font,
+                    size: 0.8,
+                    height: 0.2,
+                    curveSegments: 12
+                });
+                const textMat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6) });
+                const textMesh = new THREE.Mesh(textGeo, textMat);
+                textMesh.position.set(
+                    (Math.random() - 0.5) * gridSize * spacing,
+                    (Math.random() - 0.5) * gridSize * spacing,
+                    (Math.random() - 0.5) * gridSize * spacing
+                );
+                group.add(textMesh);
+            });
+        });
 
         scene.add(group);
 
