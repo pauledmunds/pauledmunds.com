@@ -1,5 +1,71 @@
-<html>
-	<head>
-		<title>Wonderful</title>
-	</head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paul Edmunds - Demo</title>
+    <style>
+        body, html { margin: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
+        #overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; text-align: center; }
+        h1 { margin: 0 0 10px; font-size: 3em; }
+        a { color: #88f; text-decoration: none; font-size: 1.2em; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <h1>Paul Edmunds</h1>
+        <p>Check out <a href="https://www.linkedin.com/in/paul-s-edmunds/" target="_blank" rel="noopener">his LinkedIn profile</a>.</p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(10, 10, 10);
+        scene.add(pointLight);
+
+        const geometry1 = new THREE.BoxGeometry();
+        const material1 = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+        const cube = new THREE.Mesh(geometry1, material1);
+        cube.position.x = -2;
+        scene.add(cube);
+
+        const geometry2 = new THREE.SphereGeometry(0.7, 32, 32);
+        const material2 = new THREE.MeshStandardMaterial({ color: 0xff0040 });
+        const sphere = new THREE.Mesh(geometry2, material2);
+        scene.add(sphere);
+
+        const geometry3 = new THREE.TorusKnotGeometry(0.5, 0.2, 100, 16);
+        const material3 = new THREE.MeshStandardMaterial({ color: 0x0088ff });
+        const torus = new THREE.Mesh(geometry3, material3);
+        torus.position.x = 2;
+        scene.add(torus);
+
+        camera.position.z = 5;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+            sphere.rotation.y += 0.015;
+            torus.rotation.x += 0.02;
+            torus.rotation.y += 0.02;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
 </html>
