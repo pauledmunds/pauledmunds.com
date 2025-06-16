@@ -25,6 +25,9 @@
         scene.fog = new THREE.FogExp2(0xcce0ff, 0.02);
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
         camera.position.set(0, 10, 24);
+        let orbitAngle = 0;
+        const orbitRadius = 24;
+        const orbitSpeed = 0.1; // radians per second
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
@@ -211,6 +214,11 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
             TWEEN.update(time);
+
+            orbitAngle += delta * orbitSpeed;
+            camera.position.x = Math.sin(orbitAngle) * orbitRadius;
+            camera.position.z = Math.cos(orbitAngle) * orbitRadius;
+            camera.lookAt(0, 3, 0);
 
             if (time - lastFernSpawn > fernSpawnInterval) {
                 spawnFern();
