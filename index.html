@@ -3,235 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paul Edmunds - Demo</title>
+    <title>Paul Edmunds - Creative Coder & 3D Artist</title>
     <style>
-        body, html { margin: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
-        #overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; text-align: center; }
-        h1 { margin: 0 0 10px; font-size: 3em; }
-        a { color: #88f; text-decoration: none; font-size: 1.2em; }
-        canvas { display: block; }
+        html,body { margin:0; height:100%; font-family: Arial, Helvetica, sans-serif; overflow-x:hidden; }
+        canvas { position:absolute; top:0; left:0; width:100%; height:100%; display:block; z-index:-1; }
+        nav { position:fixed; top:0; left:0; width:100%; display:flex; justify-content:center; gap:40px; padding:10px; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); z-index:10; }
+        nav a { color:#fff; text-decoration:none; padding:5px 10px; transition:background .3s; border-radius:4px; }
+        nav a:hover { background:rgba(255,255,255,0.2); }
+        #hero { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.6); padding:20px 40px; border-radius:8px; color:#fff; text-align:center; }
+        #cta { margin-top:20px; padding:10px 20px; font-size:1em; border:none; border-radius:4px; cursor:pointer; color:#fff; background:linear-gradient(45deg,#88f,#55a); transition:transform .3s; }
+        #cta:hover { transform:scale(1.05); }
+        .section { min-height:100vh; padding:120px 20px 40px; background:#f4f4f4; color:#333; }
+        .tooltip { position:absolute; padding:4px 8px; font-size:.8em; background:rgba(0,0,0,0.7); color:#fff; border-radius:4px; pointer-events:none; display:none; z-index:10; }
     </style>
 </head>
 <body>
-    <div id="overlay">
-        <h1>Paul Edmunds</h1>
-        <p>Check out <a href="https://www.linkedin.com/in/paul-s-edmunds/" target="_blank" rel="noopener">his LinkedIn profile</a>.</p>
+    <nav role="navigation" aria-label="Main navigation">
+        <a href="#projects">Projects</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+    </nav>
+    <div id="hero" aria-label="Hero section">
+        <h1>Paul Edmunds – Creative Coder &amp; 3D Artist</h1>
+        <button id="cta" aria-label="View my work">View My Work</button>
     </div>
+    <canvas id="bg"></canvas>
+    <div id="projects" class="section" tabindex="-1">
+        <h2>Projects</h2>
+        <p>Coming soon...</p>
+    </div>
+    <div id="about" class="section" tabindex="-1">
+        <h2>About</h2>
+        <p>Details about Paul’s journey into creative coding and 3D art.</p>
+    </div>
+    <div id="contact" class="section" tabindex="-1">
+        <h2>Contact</h2>
+        <p>Reach out via <a href="https://www.linkedin.com/in/paul-s-edmunds/" target="_blank" rel="noopener">LinkedIn</a>.</p>
+    </div>
+    <div class="tooltip" id="tooltip" role="tooltip"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
     <script>
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0xcce0ff, 0.02);
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
-        camera.position.set(0, 10, 24);
-        let orbitAngle = 0;
-        const orbitRadius = 24;
-        const orbitSpeed = 0.1; // radians per second
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const canvas = document.getElementById('bg');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-        const clock = new THREE.Clock();
+        renderer.setClearColor(0x222233);
 
-        const ground = new THREE.Mesh(
-            new THREE.PlaneGeometry(60, 60),
-            new THREE.MeshStandardMaterial({ color: 0x556b2f })
-        );
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 10);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambient);
+        const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(5, 10, 7);
+        scene.add(dir);
+
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({ color: 0x444444 }));
         ground.rotation.x = -Math.PI / 2;
         scene.add(ground);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(ambient);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
-        dirLight.position.set(10, 20, 10);
-        scene.add(dirLight);
-
-        const board = new THREE.Mesh(
-            new THREE.BoxGeometry(16, 0.5, 4),
-            new THREE.MeshStandardMaterial({ color: 0xdeb887 })
-        );
-        board.position.y = -0.25;
-        scene.add(board);
-
-        const ferns = [];
-        let lastFernSpawn = 0;
-        const fernSpawnInterval = 2000;
-
-        function randomGreen() {
-            const h = 100 + Math.random() * 40; // green hues
-            const color = new THREE.Color(`hsl(${h},60%,40%)`);
-            return color;
+        const shapes = new THREE.Group();
+        function addShape(x, z, color) {
+            const geo = new THREE.IcosahedronGeometry(1, 0);
+            const mat = new THREE.MeshStandardMaterial({ color });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, 1, z);
+            shapes.add(mesh);
         }
+        addShape(-3, -3, 0x6699cc);
+        addShape(3, 2, 0xcc9966);
+        addShape(-2, 4, 0x99cc66);
+        scene.add(shapes);
 
-        function createFern(params) {
-            const group = new THREE.Group();
-            const segments = [];
-            const mat = new THREE.MeshStandardMaterial({ color: params.color });
-
-            function addBranch(depth, length, radius, parent) {
-                const geom = new THREE.CylinderGeometry(radius * 0.7, radius, length, 6);
-                const mesh = new THREE.Mesh(geom, mat);
-                mesh.scale.y = 0;
-                mesh.position.y = length / 2;
-                parent.add(mesh);
-                segments.push(mesh);
-                if (depth <= 0) return;
-                const nextLength = length * params.scale;
-                const nextRadius = radius * params.radiusScale;
-                for (let i = 0; i < 3; i++) {
-                    const holder = new THREE.Group();
-                    holder.position.y = length;
-                    holder.rotation.z = params.branchAngle + (Math.random() - 0.5) * params.randomness;
-                    holder.rotation.y = (Math.random() - 0.5) * params.randomness;
-                    parent.add(holder);
-                    addBranch(depth - 1, nextLength, nextRadius, holder);
-                }
-            }
-
-            addBranch(params.depth, params.length, params.radius, group);
-            group.userData = { segments, growth: 0 };
-            return group;
-        }
-
-        function growFern(fern, delta) {
-            const segs = fern.userData.segments;
-            if (!segs.length) return true;
-            const index = Math.floor(fern.userData.growth);
-            if (index < segs.length) {
-                const seg = segs[index];
-                seg.scale.y = Math.min(seg.scale.y + delta * 2, 1);
-                if (seg.scale.y >= 1) {
-                    fern.userData.growth += 1;
-                }
-            }
-            return index >= segs.length - 1 && segs[segs.length - 1].scale.y >= 1;
-        }
-
-        function spawnFern() {
-            const params = {
-                depth: 4,
-                length: 1.5,
-                radius: 0.05,
-                scale: 0.8,
-                radiusScale: 0.8,
-                branchAngle: Math.PI / 4,
-                randomness: 0.6,
-                color: randomGreen()
-            };
-            const fern = createFern(params);
-            fern.position.set((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40);
-            scene.add(fern);
-            ferns.push(fern);
-        }
-
-        const pegGeometry = new THREE.CylinderGeometry(0.2, 0.2, 6);
-        const pegMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
-        const pegPositions = [-6, 0, 6];
-        const pegs = [[], [], []];
-        pegPositions.forEach(x => {
-            const peg = new THREE.Mesh(pegGeometry, pegMaterial);
-            peg.position.set(x, 3, 0);
-            scene.add(peg);
+        const podiums = [];
+        const podInfo = [
+            { id: 'projects', x: -4, label: 'Projects' },
+            { id: 'about', x: 0, label: 'About' },
+            { id: 'contact', x: 4, label: 'Contact' }
+        ];
+        podInfo.forEach(info => {
+            const geom = new THREE.CylinderGeometry(1, 1, 1, 32);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.position.set(info.x, 0.5, 0);
+            mesh.userData = info;
+            podiums.push(mesh);
+            scene.add(mesh);
         });
 
-        const discHeight = 0.5;
-        const colors = [0x8B5A2B,0xA0522D,0xCD853F,0xD2B48C,0xDEB887,0xBC8F8F,0xF4A460,0xCDAA7D];
-        const discs = [];
-        for (let i = 0; i < 8; i++) {
-            const radius = 3 - i * 0.3;
-            const geometry = new THREE.CylinderGeometry(radius, radius, discHeight, 32);
-            const material = new THREE.MeshStandardMaterial({ color: colors[i % colors.length] });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(pegPositions[0], discHeight / 2 + i * discHeight, 0);
-            scene.add(mesh);
-            discs.push(mesh);
-            pegs[0].push(mesh);
-        }
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const tooltip = document.getElementById('tooltip');
 
-        const moves = [];
-        function hanoi(n, from, to, via) {
-            if (n > 0) {
-                hanoi(n - 1, from, via, to);
-                moves.push([from, to]);
-                hanoi(n - 1, via, to, from);
+        function pointerMove(e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const hit = raycaster.intersectObjects(podiums)[0];
+            if (hit) {
+                tooltip.style.display = 'block';
+                tooltip.textContent = hit.object.userData.label;
+                tooltip.style.left = e.clientX + 'px';
+                tooltip.style.top = (e.clientY - 25) + 'px';
+            } else {
+                tooltip.style.display = 'none';
             }
         }
 
-        hanoi(discs.length, 0, 2, 1);
-        let moveIndex = 0;
-
-        function doMove() {
-            if (moveIndex >= moves.length) {
-                setTimeout(resetGame, 1000);
-                return;
+        function pointerDown(e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const hit = raycaster.intersectObjects(podiums)[0];
+            if (hit) {
+                document.getElementById(hit.object.userData.id).scrollIntoView({ behavior: 'smooth' });
             }
-            const [from, to] = moves[moveIndex++];
-            const disc = pegs[from].pop();
-            const lift = 5;
-            const targetX = pegPositions[to];
-            const targetY = discHeight / 2 + pegs[to].length * discHeight;
-
-            const up = new TWEEN.Tween(disc.position).to({ y: lift }, 300).easing(TWEEN.Easing.Quadratic.Out);
-            const across = new TWEEN.Tween(disc.position).to({ x: targetX }, 600).easing(TWEEN.Easing.Quadratic.InOut);
-            const down = new TWEEN.Tween(disc.position).to({ y: targetY }, 300).easing(TWEEN.Easing.Quadratic.In)
-                .onComplete(() => {
-                    pegs[to].push(disc);
-                    doMove();
-                });
-            up.chain(across);
-            across.chain(down);
-            up.start();
         }
+        window.addEventListener('pointermove', pointerMove);
+        window.addEventListener('pointerdown', pointerDown);
 
-        doMove();
-
-        const rainGeo = new THREE.BufferGeometry();
-        const rainCount = 1000;
-        const rainPos = [];
-        for (let i = 0; i < rainCount; i++) {
-            rainPos.push((Math.random() - 0.5) * 60, Math.random() * 20 + 10, (Math.random() - 0.5) * 60);
-        }
-        rainGeo.setAttribute('position', new THREE.Float32BufferAttribute(rainPos, 3));
-        const rainMat = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.1 });
-        const rain = new THREE.Points(rainGeo, rainMat);
-        scene.add(rain);
-
-        function resetGame() {
-            moveIndex = 0;
-            moves.length = 0;
-            pegs[0] = [];
-            pegs[1] = [];
-            pegs[2] = [];
-            discs.forEach((disc, i) => {
-                disc.position.set(pegPositions[0], discHeight / 2 + i * discHeight, 0);
-                pegs[0].push(disc);
-            });
-            hanoi(discs.length, 0, 2, 1);
-            doMove();
-        }
-
-        function animate(time) {
+        function animate() {
             requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-            TWEEN.update(time);
-
-            orbitAngle += delta * orbitSpeed;
-            camera.position.x = Math.sin(orbitAngle) * orbitRadius;
-            camera.position.z = Math.cos(orbitAngle) * orbitRadius;
-            camera.lookAt(0, 3, 0);
-
-            if (time - lastFernSpawn > fernSpawnInterval) {
-                spawnFern();
-                lastFernSpawn = time;
-            }
-            ferns.forEach(f => growFern(f, delta));
-
-            const pos = rain.geometry.attributes.position.array;
-            for (let i = 0; i < pos.length; i += 3) {
-                pos[i + 1] -= 0.2;
-                if (pos[i + 1] < 0) pos[i + 1] = Math.random() * 20 + 10;
-            }
-            rain.geometry.attributes.position.needsUpdate = true;
             renderer.render(scene, camera);
         }
         animate();
@@ -240,6 +133,10 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.getElementById('cta').addEventListener('click', () => {
+            document.getElementById('projects').scrollIntoView({ behavior: 'smooth' });
         });
     </script>
 </body>
