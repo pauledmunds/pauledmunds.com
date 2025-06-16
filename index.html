@@ -28,6 +28,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
+        const clock = new THREE.Clock();
 
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(60, 60),
@@ -49,15 +50,75 @@
         board.position.y = -0.25;
         scene.add(board);
 
-        const loader = new THREE.GLTFLoader();
-        const fernUrl = 'https://rawcdn.githack.com/mrdoob/three.js/r146/examples/models/gltf/Fern.glb';
-        for (let i = 0; i < 3; i++) {
-            loader.load(fernUrl, gltf => {
-                const fern = gltf.scene;
-                fern.scale.set(5, 5, 5);
-                fern.position.set(-10 + i * 10, 0, -5);
-                scene.add(fern);
-            });
+        const ferns = [];
+        let lastFernSpawn = 0;
+        const fernSpawnInterval = 2000;
+
+        function randomGreen() {
+            const h = 100 + Math.random() * 40; // green hues
+            const color = new THREE.Color(`hsl(${h},60%,40%)`);
+            return color;
+        }
+
+        function createFern(params) {
+            const group = new THREE.Group();
+            const segments = [];
+            const mat = new THREE.MeshStandardMaterial({ color: params.color });
+
+            function addBranch(depth, length, radius, parent) {
+                const geom = new THREE.CylinderGeometry(radius * 0.7, radius, length, 6);
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.scale.y = 0;
+                mesh.position.y = length / 2;
+                parent.add(mesh);
+                segments.push(mesh);
+                if (depth <= 0) return;
+                const nextLength = length * params.scale;
+                const nextRadius = radius * params.radiusScale;
+                for (let i = 0; i < 3; i++) {
+                    const holder = new THREE.Group();
+                    holder.position.y = length;
+                    holder.rotation.z = params.branchAngle + (Math.random() - 0.5) * params.randomness;
+                    holder.rotation.y = (Math.random() - 0.5) * params.randomness;
+                    parent.add(holder);
+                    addBranch(depth - 1, nextLength, nextRadius, holder);
+                }
+            }
+
+            addBranch(params.depth, params.length, params.radius, group);
+            group.userData = { segments, growth: 0 };
+            return group;
+        }
+
+        function growFern(fern, delta) {
+            const segs = fern.userData.segments;
+            if (!segs.length) return true;
+            const index = Math.floor(fern.userData.growth);
+            if (index < segs.length) {
+                const seg = segs[index];
+                seg.scale.y = Math.min(seg.scale.y + delta * 2, 1);
+                if (seg.scale.y >= 1) {
+                    fern.userData.growth += 1;
+                }
+            }
+            return index >= segs.length - 1 && segs[segs.length - 1].scale.y >= 1;
+        }
+
+        function spawnFern() {
+            const params = {
+                depth: 4,
+                length: 1.5,
+                radius: 0.05,
+                scale: 0.8,
+                radiusScale: 0.8,
+                branchAngle: Math.PI / 4,
+                randomness: 0.6,
+                color: randomGreen()
+            };
+            const fern = createFern(params);
+            fern.position.set((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40);
+            scene.add(fern);
+            ferns.push(fern);
         }
 
         const pegGeometry = new THREE.CylinderGeometry(0.2, 0.2, 6);
@@ -148,7 +209,15 @@
 
         function animate(time) {
             requestAnimationFrame(animate);
+            const delta = clock.getDelta();
             TWEEN.update(time);
+
+            if (time - lastFernSpawn > fernSpawnInterval) {
+                spawnFern();
+                lastFernSpawn = time;
+            }
+            ferns.forEach(f => growFern(f, delta));
+
             const pos = rain.geometry.attributes.position.array;
             for (let i = 0; i < pos.length; i += 3) {
                 pos[i + 1] -= 0.2;
